@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply text-text antialiased;
+    background: radial-gradient(circle at 50% -20%, #0d1829 0%, #040810 100%);
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+  ::selection {
+    background: rgba(0, 210, 255, 0.2);
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #080f1e;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1a2f4a;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00d2ff33;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-panel border border-border rounded-2xl shadow-panel;
+  }
+  .glass-card {
+    @apply rounded-2xl border border-white/[0.05] backdrop-blur-xl transition-all duration-300;
+    background: linear-gradient(135deg, rgba(13, 24, 41, 0.7) 0%, rgba(8, 15, 30, 0.8) 100%);
+    box-shadow: 0 4px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .glass-card:hover {
+    @apply border-white/[0.1];
+  }
+  .label {
+    @apply font-mono text-xs text-muted uppercase tracking-widest;
+  }
+  .value {
+    @apply font-mono text-sm text-text;
+  }
+  .btn-encrypt {
+    @apply py-2.5 px-5 rounded-xl font-mono text-sm font-medium bg-encrypt-gradient
+           text-void hover:brightness-110 hover:shadow-encrypt active:scale-[0.98]
+           transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ika {
+    @apply py-2.5 px-5 rounded-xl font-mono text-sm font-medium bg-ika-gradient
+           text-white hover:brightness-110 hover:shadow-ika active:scale-[0.98]
+           transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply py-2.5 px-5 rounded-xl font-mono text-sm text-muted border border-border
+           hover:border-encrypt/40 hover:text-text transition-all duration-200;
+  }
+  .input {
+    @apply w-full bg-surface border border-border rounded-lg px-3 py-2.5
+           font-mono text-sm text-text placeholder-muted
+           focus:outline-none focus:ring-1 focus:ring-encrypt/50 focus:border-encrypt/50
+           transition-colors duration-200;
+  }
+  .badge-encrypt {
+    @apply text-xs px-2 py-0.5 rounded font-mono
+           bg-encrypt/10 text-encrypt border border-encrypt/20;
+  }
+  .badge-ika {
+    @apply text-xs px-2 py-0.5 rounded font-mono
+           bg-ika/10 text-ika border border-ika/20;
+  }
+  .badge-success {
+    @apply text-xs px-2 py-0.5 rounded font-mono
+           bg-success/10 text-success border border-success/20;
+  }
+  .badge-muted {
+    @apply text-xs px-2 py-0.5 rounded font-mono
+           bg-muted/10 text-muted border border-muted/20;
+  }
+}
+
+/* Solana wallet adapter dark overrides */
+.wallet-adapter-modal-wrapper {
+  background: #080f1e !important;
+  border: 1px solid #1a2f4a !important;
+  border-radius: 16px !important;
+}
+.wallet-adapter-button {
+  font-family: var(--font-mono) !important;
+  background: rgba(0, 210, 255, 0.1) !important;
+  border: 1px solid rgba(0, 210, 255, 0.2) !important;
+  color: #00d2ff !important;
+  border-radius: 10px !important;
+}
+.wallet-adapter-button:hover {
+  background: rgba(0, 210, 255, 0.2) !important;
+}

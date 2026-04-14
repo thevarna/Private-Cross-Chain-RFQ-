@@ -1,0 +1,33 @@
+[package]
+name = "private-rfq"
+version = "0.1.0"
+edition = "2024"
+description = "Private Cross-Chain RFQ Desk — Solana on-chain program (Pinocchio)"
+
+# ─── Encrypt SDK ───────────────────────────────────────────────────────────────
+[dependencies]
+encrypt-types     = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+encrypt-dsl       = { package = "encrypt-solana-dsl", git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+encrypt-pinocchio = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+
+# ─── Ika dWallet SDK ──────────────────────────────────────────────────────────
+ika-dwallet-pinocchio = { git = "https://github.com/dwallet-labs/ika-pre-alpha" }
+
+# ─── Our FHE matching circuit ─────────────────────────────────────────────────
+private-rfq-circuit = { path = "../../encrypt-circuit" }
+
+# ─── Pinocchio runtime ────────────────────────────────────────────────────────
+pinocchio        = "0.10"
+solana-instruction-view = "1.0"
+# (pinocchio-system and pinocchio-token removed due to version conflicts with core pinocchio 0.10)
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+# [dev-dependencies]
+# encrypt-solana-test = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+# mollusk-svm         = "0.11"
+# solana-account      = "2"
+# solana-instruction  = "2"
+# solana-pubkey       = "2"
+
+[lib]
+crate-type = ["cdylib", "lib"]

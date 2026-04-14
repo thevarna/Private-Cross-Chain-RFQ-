@@ -1,0 +1,23 @@
+[package]
+name = "private-rfq-circuit"
+version = "0.1.0"
+edition = "2024"
+description = "FHE computation graph for the RFQ matching circuit (Encrypt REFHE)"
+
+# ─── Encrypt SDK crates (pre-alpha, from dwallet-labs GitHub) ─────────────────
+[dependencies]
+# Core FHE types: EUint64, EBool, Uint64, Bool, etc.
+encrypt-types = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+# The #[encrypt_fn] macro that compiles Rust into a computation graph DAG
+# AND generates the CpiTrait for use inside Solana programs.
+encrypt-dsl   = { package = "encrypt-solana-dsl", git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+pinocchio     = "0.10"
+encrypt-pinocchio = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+
+# ─── Development / testing ─────────────────────────────────────────────────────
+# [dev-dependencies]
+# # EncryptTestContext for in-process mock FHE evaluation (no validator needed)
+# encrypt-solana-test = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
+
+[lib]
+crate-type = ["rlib"]

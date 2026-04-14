@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "mocha", "chai", "deep-eql", "w3c-web-usb"],
+    "paths": {
+      "@solana/web3.js": ["node_modules/@solana/web3.js"]
+    }
+  },
+  "include": [
+    "tests/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "references": [
+    { "path": "./app" },
+    { "path": "./relayer" }
+  ]
+}

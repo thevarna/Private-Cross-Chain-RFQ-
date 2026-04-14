@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "programs/private_rfq",
+    "encrypt-circuit",
+]
+
+# Exclude frontend and relayer from Rust workspace
+exclude = [
+    "app",
+    "relayer",
+    "tests",
+]

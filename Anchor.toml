@@ -1,0 +1,19 @@
+[toolchain]
+channel = "stable"
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.devnet]
+private_rfq = "PRVrFQd3eBKaxK3TEvdA2FPLQiSfGjH7jYHMEsGhsXM"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

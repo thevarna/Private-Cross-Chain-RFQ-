@@ -1,0 +1,42 @@
+{
+  "name": "private-rfq-desk",
+  "version": "1.0.0",
+  "description": "Private Cross-Chain RFQ Desk — Encrypt × Ika Frontier Hackathon",
+  "private": true,
+  "workspaces": [
+    "app",
+    "relayer",
+    "tests"
+  ],
+  "scripts": {
+    "build:circuit": "cargo build -p private-rfq-circuit --lib",
+    "test:circuit": "cargo test -p private-rfq-circuit --lib",
+    "build:program": "cd programs/private_rfq && cargo build-sbf",
+    "deploy:devnet": "solana program deploy target/deploy/private_rfq.so --url devnet",
+    "dev:app": "npm run dev -w app",
+    "dev:relayer": "npm run dev -w relayer",
+    "test:integration": "ts-mocha -p tsconfig.json -t 1000000 tests/**/*.ts",
+    "build": "npm run build:program && npm run build -w app && npm run build -w relayer"
+  },
+  "devDependencies": {
+    "@types/deep-eql": "^4.0.2",
+    "@types/node": "^20.19.39",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "@types/w3c-web-usb": "^1.0.14",
+    "ts-mocha": "^10",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.2",
+    "mocha": "^11.7.5",
+    "ts-node": "^10.9.2"
+  }
+}
