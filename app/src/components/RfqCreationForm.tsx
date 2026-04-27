@@ -38,7 +38,7 @@ export const RfqCreationForm: FC = () => {
   const [values, setValues] = useState<FormValues>({
     assetAmount: "0.5",
     minPriceUsdc: "65000",
-    dwalletPubkey: "",
+    dwalletPubkey: "11111111111111111111111111111111", // Default mock dWallet for demo
   });
   const [rfqPda, setRfqPda] = useState<PublicKey | null>(null);
 
