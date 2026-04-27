@@ -11,7 +11,7 @@ import { startApiServer } from "./api";
 // ─── Configuration ─────────────────────────────────────────────────────────────
 
 const SOLANA_RPC      = process.env.SOLANA_RPC      ?? "https://api.devnet.solana.com";
-const PROGRAM_ID_STR  = process.env.PROGRAM_ID      ?? "PRVrFQd3eBKaxK3TEvdA2FPLQiSfGjH7jYHMEsGhsXM";
+const PROGRAM_ID_STR  = process.env.PROGRAM_ID      ?? "HGvkqjJZXQbRPkPiMPxpKW153ssyoeqrbS19zgbAoRYp";
 const POLL_INTERVAL   = parseInt(process.env.POLL_MS ?? "2000", 10);
 const API_PORT        = parseInt(process.env.PORT    ?? "3001", 10);
 

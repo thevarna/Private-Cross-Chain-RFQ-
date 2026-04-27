@@ -1,9 +1,9 @@
 # Dependencies
 node_modules/
-/dist
-/build
-/.next/
-/.env
+dist/
+build/
+.next/
+.env
 
 # Rust / Anchor
 target/

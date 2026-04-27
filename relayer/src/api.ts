@@ -20,15 +20,15 @@ export function startApiServer(port: number) {
   });
 
   /**
-   * GET /api/rfqs
+   * GET /api/rfqs/active
    * Returns all indexed RFQs for the Orderbook UI
    */
-  app.get("/api/rfqs", (req, res) => {
+  app.get("/api/rfqs/active", (req, res) => {
     // Sort by created_at descending (newest first)
     const rfqs = Array.from(rfqStore.values())
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
     
-    res.json(rfqs);
+    res.json({ data: rfqs });
   });
 
   /**

@@ -9,7 +9,7 @@ export const ENCRYPT_PROGRAM_ID = "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
 export const IKA_DWALLET_PROGRAM_ID = "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY";
 
 /** Private RFQ Desk program (deployed to devnet) */
-export const PRIVATE_RFQ_PROGRAM_ID = "PRVrFQd3eBKaxK3TEvdA2FPLQiSfGjH7jYHMEsGhsXM";
+export const PRIVATE_RFQ_PROGRAM_ID = "HGvkqjJZXQbRPkPiMPxpKW153ssyoeqrbS19zgbAoRYp";
 
 /** Encrypt gRPC endpoint for ciphertext creation and graph execution */
 export const ENCRYPT_GRPC_ENDPOINT = "https://pre-alpha-dev-1.encrypt.ika-network.net";
