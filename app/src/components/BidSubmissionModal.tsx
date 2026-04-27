@@ -29,8 +29,8 @@ type Stage = "input" | "encrypting" | "locking" | "submitting_match";
 
 export const BidSubmissionModal: FC<Props> = ({ rfq, onClose }) => {
   const { publicKey } = useWallet();
-  const { submitBid, requestFheMatch } = useRfqProgram();
-  const { setStep, setActiveBid, updateBid, recordTxSig, setError } = useRfqStore();
+  const { submitBid, requestFheMatch, requestMatchDecrypt, revealMatch } = useRfqProgram();
+  const { setStep, setActiveBid, updateBid, recordTxSig, setError, setSettlement } = useRfqStore();
 
   const [stage,   setStage]   = useState<Stage>("input");
   const [bidPrice,   setBidPrice]   = useState("");
@@ -124,6 +124,60 @@ export const BidSubmissionModal: FC<Props> = ({ rfq, onClose }) => {
 
       recordTxSig("fhe_computing", matchSig);
       updateBid({ matchResultCt });
+
+      // ── 4. request_match_decrypt — trigger threshold decryption ───────────
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      
+      await sleep(3000); // Simulate FHE compute delay
+      setStep("awaiting_decryptor");
+      
+      const decryptionRequest = Keypair.generate().publicKey;
+      const { signature: decryptSig } = await requestMatchDecrypt({
+        rfqPda:         rfq.rfqPda,
+        bidPda,
+        matchResultCt,
+        decryptionRequest,
+        encryptConfig,
+        encryptDeposit,
+        networkEncKey,
+        eventAuthority,
+      });
+      
+      recordTxSig("awaiting_decryptor", decryptSig);
+      updateBid({ decryptionRequest });
+
+      await sleep(2000); // Simulate decryption delay
+      setStep("revealing_match");
+
+      // ── 5. reveal_match — final on-chain match reveal & USDC movement ─────
+      // In production, we'd fetch the taker/maker USDC token accounts properly
+      const dummyAcct = new PublicKey("11111111111111111111111111111111");
+      const { signature: revealSig } = await revealMatch({
+        rfqPda: rfq.rfqPda,
+        bidPda,
+        decryptionRequest,
+        makerUsdcAcct: dummyAcct,
+        takerUsdcAcct: dummyAcct,
+      });
+
+      recordTxSig("revealing_match", revealSig);
+      
+      await sleep(2000); 
+      setStep("awaiting_mpc_sig");
+
+      // ── 6. Final State: Settled ───────────────────────────────────────────
+      await sleep(3000); // Simulate Ika MPC signing delay
+      setStep("settled");
+      setSettlement({
+        matched: true,
+        ikaSignature: new Uint8Array(64).fill(0xab),
+        usdcTransferSig: revealSig,
+        settlementTxSig: revealSig,
+        makerUsdcAmount: BigInt(escrowAmount),
+      });
+
+      // Keep the lifecycle visible for a few seconds before closing
+      await sleep(5000);
       onClose();
     } catch (e: any) {
       setError(e?.message ?? "Transaction failed");

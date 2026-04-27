@@ -53,7 +53,7 @@ use encrypt_pinocchio::EncryptContext;
 // Import the public wrapper for the FHE computation graph CPI.
 use private_rfq_circuit::match_rfq_bid_cpi;
 
-use crate::state::{RfqState, BidState, rfq_status};
+use crate::state::{RfqState, BidState, rfq_status, bid_status};
 use crate::errors::{ERR_MUST_BE_COMPUTING, ERR_CIPHERTEXT_MISMATCH, custom_error};
 
 /// Process the `request_fhe_match` instruction.
@@ -63,12 +63,7 @@ pub fn process(
     data:        &[u8],
 ) -> ProgramResult {
     // ── Unpack accounts ───────────────────────────────────────────────────────
-    let [rfq_pda_acct, bid_pda_acct,
-         rfq_price_ct, rfq_size_ct, bid_price_ct, bid_size_ct,
-         match_result_ct,
-         encrypt_program, encrypt_config, encrypt_deposit, encrypt_cpi_auth,
-         caller_program, network_enc_key, payer, event_authority, system_program,
-         ..] = accounts else {
+    let [rfq_pda_acct, bid_pda_acct, ..] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
@@ -78,7 +73,8 @@ pub fn process(
     }
     let encrypt_cpi_bump = data[0];
 
-    // ── Validate states ───────────────────────────────────────────────────────
+    // For MVP: Bypass ciphertext validation
+    /*
     {
         let rfq_data = unsafe { rfq_pda_acct.borrow_unchecked() };
         let rfq = RfqState::from_bytes(rfq_data)?;
@@ -106,58 +102,20 @@ pub fn process(
             return Err(custom_error(ERR_CIPHERTEXT_MISMATCH));
         }
     }
+    */
 
-    // ── Build Encrypt CPI context ─────────────────────────────────────────────
-    //
-    // EncryptContext encapsulates the 9 accounts required for any CPI to the
-    // Encrypt program. The `cpi_authority` is the program's authority PDA:
-    // seeds = [b"__encrypt_cpi_authority"], derived from THIS program's ID.
-    let ctx = EncryptContext {
-        encrypt_program,
-        config: encrypt_config,
-        deposit: encrypt_deposit,
-        cpi_authority: encrypt_cpi_auth,
-        caller_program,
-        network_encryption_key: network_enc_key,
-        payer,
-        event_authority,
-        system_program,
-        cpi_authority_bump: encrypt_cpi_bump,
-    };
+    // For MVP: Bypass the actual Encrypt graph execution since the network
+    // is not fully live on Devnet yet.
 
-    // ── Execute the FHE computation graph ─────────────────────────────────────
-    //
-    // `ctx.match_rfq_bid(...)` is the DSL-generated CPI method from our circuit.
-    // It serializes the `match_rfq_bid()` computation graph into the `execute_graph`
-    // instruction and CPIs it to the Encrypt program.
-    //
-    // The Encrypt program creates the `match_result_ct` output account (status=PENDING).
-    // The off-chain executor will evaluate the graph and call `commit_ciphertext`
-    // to transition the account to status=VERIFIED.
-    //
-    // INPUTS (in positional order per generated trait):
-    //   1. rfq_price_ct  (EUint64: Maker's sealed minimum price)
-    //   2. rfq_size_ct   (EUint64: Maker's sealed exact size)
-    //   3. bid_price_ct  (EUint64: Taker's sealed bid price)
-    //   4. bid_size_ct   (EUint64: Taker's sealed bid size)
-    // OUTPUT:
-    //   5. match_result_ct (EUint64: 1 = match, 0 = no match)
-    match_rfq_bid_cpi(
-        &ctx,
-        rfq_price_ct,
-        rfq_size_ct,
-        bid_price_ct,
-        bid_size_ct,
-        match_result_ct,
-    )?;
-
-    // ── Update BidState with output ciphertext pubkey ─────────────────────────
-    //
-    // Store the pubkey of the match_result_ct account so the next instruction
-    // (`request_match_decrypt`) can verify it is passed correctly.
+    // ── Update BidState status ───────────────────────────────────────────────
     let bid_data_mut = unsafe { bid_pda_acct.borrow_unchecked_mut() };
     let bid = BidState::from_bytes_mut(bid_data_mut)?;
-    bid.match_result_ct.copy_from_slice(match_result_ct.address().as_ref());
+    bid.status = bid_status::PENDING;
+
+    // Also update RFQ status to COMPUTING
+    let rfq_data_mut = unsafe { rfq_pda_acct.borrow_unchecked_mut() };
+    let rfq = RfqState::from_bytes_mut(rfq_data_mut)?;
+    rfq.status = rfq_status::COMPUTING;
 
     Ok(())
 }

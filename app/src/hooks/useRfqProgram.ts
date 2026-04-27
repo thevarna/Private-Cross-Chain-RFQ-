@@ -197,22 +197,9 @@ export function useRfqProgram() {
       const ix = new TransactionInstruction({
         programId: PROGRAM_ID,
         keys: [
-          { pubkey: params.rfqPda,         isSigner: false, isWritable: false },
+          { pubkey: params.rfqPda,         isSigner: false, isWritable: true  },
           { pubkey: params.bidPda,         isSigner: false, isWritable: true  },
-          { pubkey: params.rfqPriceCt,     isSigner: false, isWritable: false },
-          { pubkey: params.rfqSizeCt,      isSigner: false, isWritable: false },
-          { pubkey: params.bidPriceCt,     isSigner: false, isWritable: false },
-          { pubkey: params.bidSizeCt,      isSigner: false, isWritable: false },
-          { pubkey: params.matchResultCt,  isSigner: false, isWritable: true  },
-          { pubkey: ENCRYPT_PID,           isSigner: false, isWritable: false },
-          { pubkey: params.encryptConfig,  isSigner: false, isWritable: false },
-          { pubkey: params.encryptDeposit, isSigner: false, isWritable: true  },
-          { pubkey: encryptCpi,            isSigner: false, isWritable: false },
-          { pubkey: PROGRAM_ID,            isSigner: false, isWritable: false },
-          { pubkey: params.networkEncKey,  isSigner: false, isWritable: false },
-          { pubkey: publicKey,             isSigner: true,  isWritable: true  },
-          { pubkey: params.eventAuthority, isSigner: false, isWritable: false },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          { pubkey: publicKey,             isSigner: true,  isWritable: true  }, // payer
         ],
         data: Buffer.concat([Buffer.from([2]), data]),
       });
@@ -245,19 +232,9 @@ export function useRfqProgram() {
       const ix = new TransactionInstruction({
         programId: PROGRAM_ID,
         keys: [
-          { pubkey: params.rfqPda,             isSigner: false, isWritable: false },
+          { pubkey: params.rfqPda,             isSigner: false, isWritable: true  },
           { pubkey: params.bidPda,             isSigner: false, isWritable: true  },
-          { pubkey: params.matchResultCt,      isSigner: false, isWritable: false },
-          { pubkey: params.decryptionRequest,  isSigner: false, isWritable: true  },
-          { pubkey: ENCRYPT_PID,               isSigner: false, isWritable: false },
-          { pubkey: params.encryptConfig,      isSigner: false, isWritable: false },
-          { pubkey: params.encryptDeposit,     isSigner: false, isWritable: true  },
-          { pubkey: encryptCpi,                isSigner: false, isWritable: false },
-          { pubkey: PROGRAM_ID,                isSigner: false, isWritable: false },
-          { pubkey: params.networkEncKey,      isSigner: false, isWritable: false },
-          { pubkey: publicKey,                 isSigner: true,  isWritable: true  },
-          { pubkey: params.eventAuthority,     isSigner: false, isWritable: false },
-          { pubkey: SystemProgram.programId,   isSigner: false, isWritable: false },
+          { pubkey: publicKey,                 isSigner: true,  isWritable: true  }, // payer
         ],
         data: Buffer.concat([Buffer.from([3]), data]),
       });
@@ -290,12 +267,7 @@ export function useRfqProgram() {
         keys: [
           { pubkey: params.rfqPda,            isSigner: false, isWritable: true  },
           { pubkey: params.bidPda,            isSigner: false, isWritable: true  },
-          { pubkey: params.decryptionRequest, isSigner: false, isWritable: false },
-          { pubkey: vaultPda,                 isSigner: false, isWritable: true  },
-          { pubkey: params.makerUsdcAcct,     isSigner: false, isWritable: true  },
-          { pubkey: params.takerUsdcAcct,     isSigner: false, isWritable: true  },
-          { pubkey: vaultPda,                 isSigner: false, isWritable: false }, // vault authority
-          { pubkey: TOKEN_PROGRAM_ID,         isSigner: false, isWritable: false },
+          { pubkey: publicKey,                isSigner: true,  isWritable: true  }, // payer
         ],
         data: Buffer.concat([Buffer.from([4]), data]),
       });

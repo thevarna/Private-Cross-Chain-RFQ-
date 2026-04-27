@@ -6,13 +6,14 @@
  */
 
 import { Connection, PublicKey, GetProgramAccountsFilter } from "@solana/web3.js";
+import bs58 from "bs58";
 import { startApiServer } from "./api";
 
 // ─── Configuration ─────────────────────────────────────────────────────────────
 
 const SOLANA_RPC      = process.env.SOLANA_RPC      ?? "https://api.devnet.solana.com";
 const PROGRAM_ID_STR  = process.env.PROGRAM_ID      ?? "HGvkqjJZXQbRPkPiMPxpKW153ssyoeqrbS19zgbAoRYp";
-const POLL_INTERVAL   = parseInt(process.env.POLL_MS ?? "2000", 10);
+const POLL_INTERVAL   = parseInt(process.env.POLL_MS ?? "10000", 10);
 const API_PORT        = parseInt(process.env.PORT    ?? "3001", 10);
 
 const RFQ_DISCRIMINATOR = 1;
@@ -55,7 +56,7 @@ async function poll(connection: Connection, programId: PublicKey) {
   try {
     const accounts = await connection.getProgramAccounts(programId, {
       filters: [
-        { memcmp: { offset: 0, bytes: new PublicKey(Buffer.from([RFQ_DISCRIMINATOR])).toBase58() } },
+        { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from([RFQ_DISCRIMINATOR])) } },
         { dataSize: 172 },
       ] as GetProgramAccountsFilter[],
     });

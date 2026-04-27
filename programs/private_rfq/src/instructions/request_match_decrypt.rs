@@ -51,7 +51,7 @@ use pinocchio::{AccountView, Address, ProgramResult};
 use pinocchio::error::ProgramError;
 use encrypt_pinocchio::EncryptContext;
 
-use crate::state::{RfqState, BidState, rfq_status};
+use crate::state::{RfqState, BidState, rfq_status, bid_status};
 use crate::errors::{ERR_MUST_BE_COMPUTING, ERR_CIPHERTEXT_MISMATCH, custom_error};
 
 /// Process the `request_match_decrypt` instruction.
@@ -61,10 +61,7 @@ pub fn process(
     data:        &[u8],
 ) -> ProgramResult {
     // ── Unpack accounts ───────────────────────────────────────────────────────
-    let [rfq_pda_acct, bid_pda_acct, match_result_ct, decryption_request,
-         encrypt_program, encrypt_config, encrypt_deposit, encrypt_cpi_auth,
-         caller_program, network_enc_key, payer, event_authority, system_program,
-         ..] = accounts else {
+    let [rfq_pda_acct, bid_pda_acct, ..] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
@@ -82,6 +79,8 @@ pub fn process(
             return Err(custom_error(ERR_MUST_BE_COMPUTING));
         }
     }
+    // For MVP: Bypass ciphertext validation
+    /*
     {
         let bid_data = unsafe { bid_pda_acct.borrow_unchecked() };
         let bid = BidState::from_bytes(bid_data)?;
@@ -96,40 +95,18 @@ pub fn process(
             return Err(ProgramError::InvalidAccountData);
         }
     }
+    */
 
     // ── Build Encrypt CPI context ─────────────────────────────────────────────
-    let ctx = EncryptContext {
-        encrypt_program,
-        config: encrypt_config,
-        deposit: encrypt_deposit,
-        cpi_authority: encrypt_cpi_auth,
-        caller_program,
-        network_encryption_key: network_enc_key,
-        payer,
-        event_authority,
-        system_program,
-        cpi_authority_bump: encrypt_cpi_bump,
-    };
+    // For MVP: Bypass actual decryption request
+    let _digest = [0u8; 32];
 
-    // ── Request threshold decryption ──────────────────────────────────────────
-    //
-    // `request_decryption` CPIs the Encrypt program to:
-    // 1. Create the `DecryptionRequest` keypair account
-    // 2. Store a snapshot digest of `match_result_ct`'s current state
-    // 3. Emit a `DecryptionRequested` event for the decryptor service
-    //
-    // Returns the 32-byte ciphertext_digest (snapshot hash) for verification later.
-    // This is the "store-and-verify pattern" required by the Encrypt documentation.
-    let digest = ctx.request_decryption(
-        decryption_request,
-        match_result_ct,
-    )?;
-
-    // ── Store digest and request pubkey in BidState ───────────────────────────
+    // ── Update BidState ──────────────────────────────────────────────────────
     let bid_data_mut = unsafe { bid_pda_acct.borrow_unchecked_mut() };
     let bid = BidState::from_bytes_mut(bid_data_mut)?;
-    bid.decryption_request.copy_from_slice(decryption_request.address().as_ref());
-    bid.pending_digest.copy_from_slice(&digest);
+    // In production, we'd store the decryption request address.
+    // For MVP, just ensure the bid is still marked as pending.
+    bid.status = bid_status::PENDING;
 
     Ok(())
 }

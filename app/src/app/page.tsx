@@ -38,9 +38,25 @@ export default function Home() {
     );
   }
 
-  const showStepper     = step !== "idle" && step !== "awaiting_bid";
+  // Stepper is strictly for the Taker's FHE matching lifecycle
+  const showStepper = [
+    "encrypting_bid",
+    "submitting_bid",
+    "fhe_computing",
+    "awaiting_decryptor",
+    "revealing_match",
+    "awaiting_mpc_sig",
+  ].includes(step);
+
   const showSettlement  = (step === "settled" || step === "no_match") && settlement;
-  const showRfqForm     = role === "maker" && step === "idle";
+  
+  // Maker stays on the creation form until they successfully publish
+  const showRfqForm = role === "maker" && [
+    "idle", 
+    "encrypting_rfq", 
+    "submitting_rfq", 
+    "awaiting_bid"
+  ].includes(step);
 
   return (
     <div className="min-h-screen flex flex-col bg-void bg-grid-pattern bg-[size:40px_40px]">
