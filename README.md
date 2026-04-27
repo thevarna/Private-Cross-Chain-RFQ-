@@ -106,10 +106,12 @@ The Ika network provides the **cross-chain signing layer**. When a match is conf
 | Tool | Version |
 |------|---------|
 | Node.js | >= 22 |
-| Rust | stable |
+| Rust | stable (2024 edition) |
 | Solana CLI | >= 1.18 |
-| Anchor CLI | >= 0.30 |
-| pnpm / npm | any |
+| **Pinocchio** | v0.10 (via `Cargo.toml`) |
+| npm | any |
+
+> **Note on Pinocchio:** This project uses [Pinocchio](https://github.com/febo/pinocchio) as the Solana program framework instead of Anchor. Pinocchio is a lightweight, zero-copy native Solana runtime that produces smaller, faster SBF binaries. The Encrypt and Ika SDKs (`encrypt-pinocchio`, `ika-dwallet-pinocchio`) are specifically built against the Pinocchio account model.
 
 ### 1. Install Dependencies
 
@@ -122,14 +124,29 @@ cd "Private Cross-Chain RFQ"
 npm install
 ```
 
-### 2. Build the Solana Program
+### 2. Build the Solana Program (Pinocchio)
 
 ```bash
-# Build the native Rust/SBF program
-npm run build:program
+# Build the native Rust/SBF program using Pinocchio v0.10
+# No Anchor CLI required — this is a raw cargo build-sbf
+cd programs/private_rfq
+cargo build-sbf
+cd ../..
 
 # (Optional) Deploy to Devnet — requires funded wallet at ~/.config/solana/id.json
 npm run deploy:devnet
+```
+
+### 3. Build the Encrypt FHE Circuit
+
+```bash
+# Build the FHE matching circuit (used by the on-chain program)
+cd encrypt-circuit
+cargo build --lib
+cd ..
+
+# Or use the convenience script:
+npm run build:circuit
 ```
 
 ### 3. Run the Frontend
