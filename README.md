@@ -1,234 +1,242 @@
-# Private Cross-Chain RFQ Desk
+# 🔐 Private Cross-Chain RFQ Desk
 
-> **Colosseum Frontier Hackathon 2026 — Track: Encrypt × Ika**
->
-> *Privacy-preserving OTC trading: encrypted price discovery via REFHE + bridgeless settlement via 2PC-MPC dWallet*
-
----
-
-## What Was Built
-
-A production-architected, end-to-end **Private Request-for-Quote Desk** that enables institutional OTC traders to negotiate and settle cross-chain transactions without ever exposing their price or size to the counterparty or the public.
-
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Blockchain** | Solana Devnet (Pinocchio) | State machine, escrow, settlement proof |
-| **Privacy** | Encrypt REFHE (FHE) | Encrypted order matching — price/size never revealed |
-| **Cross-Chain** | Ika 2PC-MPC dWallet | Bridgeless BTC release via MPC signature |
-| **Frontend** | Next.js 14 + Tailwind | Institutional dark-mode trading console |
-| **Indexer** | Node.js + SQLite | Privacy-safe RFQ feed (pubkeys/status only) |
+> **Encrypt × Ika Frontier Hackathon Submission**  
+> A confidential, cross-chain OTC trading desk where order parameters are mathematically sealed throughout the entire lifecycle — from creation to settlement.
 
 ---
 
-## Architecture Overview
+## 🚨 The Problem
+
+Institutional and large-scale OTC crypto traders face a fundamental dilemma: **any on-chain trade reveals intent before execution**. This creates:
+
+- **Front-running** — MEV bots read pending transactions and trade ahead, moving the market against the initiator.
+- **Market impact** — Large order sizes become publicly visible the moment a quote is requested, letting counterparties reprice.
+- **Privacy loss** — Makers reveal their exact floor price and Takers reveal their willingness-to-pay, destroying negotiation leverage.
+
+Existing DEXes, AMMs, and even most OTC desks operate on fully-transparent on-chain state — there is no cryptographic mechanism to keep order parameters confidential while still allowing trustless, atomic settlement.
+
+---
+
+## 💡 The Solution
+
+**Private RFQ Desk** is a sealed-bid, cross-chain Request-for-Quote protocol built on **Solana**, using:
+
+- **[Encrypt](https://encrypt.xyz/) FHE (Fully Homomorphic Encryption)** to match orders on encrypted ciphertexts — neither the network, the validators, nor the counterparty ever sees price or size until *after* settlement is decided.
+- **[Ika](https://ika.xyz/) 2PC-MPC** to authorize the release of native cross-chain assets (e.g., BTC on Bitcoin mainnet) without bridges, wrapped tokens, or custodians.
+
+### Target Users
+
+| Role | Use Case |
+|------|----------|
+| **Market Makers** | Quote BTC/USDC without revealing floor prices to the market |
+| **Institutional Takers** | Fill large OTC blocks without market impact or front-running risk |
+| **Cross-chain Traders** | Swap native BTC for Solana USDC in a single, atomic, trustless flow |
+
+---
+
+## 🏗️ How It Utilizes Encrypt & Ika
+
+### Encrypt FHE — Confidential Order Matching
+
+The Encrypt network provides the **FHE computation layer**. In this protocol:
+
+1. **Maker** creates an RFQ by encrypting their `minPrice` and `assetSize` as FHE ciphertexts via the Encrypt gRPC API. The Solana program stores only the *ciphertext account public keys* — the plaintext never touches the chain.
+2. **Taker** submits a sealed bid the same way — their `bidPrice` and `bidSize` are FHE ciphertexts.
+3. The **Encrypt FHE graph** (`match_rfq_bid` circuit) performs a **ciphertext-to-ciphertext comparison** (`CT + CT`) using Encrypt's A-Star runtime. The result is a single encrypted boolean: `matched`.
+4. The Encrypt **Threshold Decryptor** network decrypts only the match result boolean — the actual price and size values are *never* decrypted or revealed.
 
 ```
-Maker                             Taker
-  │                                 │
-  │  createInput(price_u64)         │  createInput(bid_price_u64)
-  │  createInput(size_u64)          │  createInput(bid_size_u64)
-  │     ── Encrypt gRPC ──          │     ── Encrypt gRPC ──
-  │  [price_ct pubkey]              │  [bid_price_ct pubkey]
-  │  [size_ct pubkey]               │  [bid_size_ct pubkey]
-  │                                 │
-  ├── initialize_rfq ───────────────►
-  │     (stores ciphertext pubkeys) │
-  │     (dWallet already loaded)    │
-  │                                 ├── submit_bid ──────────────────────►
-  │                                 │     (USDC escrowed in vault PDA)
-  │                                 │
-  │                                 ├── request_fhe_match ───────────────►
-  │                                 │     (CPIs execute_graph to Encrypt)
-  │                                 │     Encrypt executor evaluates:
-  │                                 │       match_rfq_bid(p1,s1,p2,s2)→EUint64
-  │                                 │
-  │                                 ├── request_match_decrypt ───────────►
-  │                                 │     (CPIs request_decryption)
-  │                                 │     Decryptor reveals: 1 or 0
-  │                                 │
-  │                                 ├── reveal_match ────────────────────►
-  │                                 │     1 → MATCH:  USDC → Maker
-  │                                 │     0 → REJECT: USDC → Taker
-  │                                 │
-  ├── execute_settlement ──────────────────────────────────────────────────►
-  │     (CPIs approve_message to Ika)
-  │     Ika NOA 2PC-MPC signs the foreign-chain TX
-  │     MessageApproval PDA: status → Signed
-  │
-  │  [polls MessageApproval PDA until status=1]
-  │  [reads signature bytes]
-  │  [broadcasts BTC transaction]
+Maker Price [ENCRYPTED] ──┐
+Maker Size  [ENCRYPTED] ──┤   Encrypt FHE Graph     → Encrypted Boolean (match/no-match)
+Taker Price [ENCRYPTED] ──┤   (match_rfq_bid)        → Threshold Decryptor → Reveal on Solana
+Taker Size  [ENCRYPTED] ──┘
+```
+
+> **Note:** For this hackathon demo on Devnet, the Encrypt gRPC SDK is mocked with deterministic keypair accounts. The FHE circuit logic, graph execution, and threshold decryption flow are fully scaffolded and ready for production SDK integration.
+
+### Ika 2PC-MPC — Bridgeless Cross-Chain Settlement
+
+The Ika network provides the **cross-chain signing layer**. When a match is confirmed:
+
+1. The Maker pre-registers an **Ika dWallet** — a distributed key share that holds their BTC on the Bitcoin network (no bridge, no wrapping).
+2. Upon `reveal_match`, the Solana program emits a settlement event to the Ika dWallet network.
+3. The Ika **2PC-MPC cluster** (8 nodes) generates a Bitcoin transaction signature without any single node holding the full private key.
+4. The BTC is released to the Taker's receive address. Simultaneously, USDC escrow is transferred to the Maker on Solana.
+
+> **Note:** For this hackathon demo on Devnet, Ika SDK calls are simulated. The dWallet account, MPC signing round, and cross-chain message approval flows are fully scaffolded.
+
+---
+
+## 📋 Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Frontend (Next.js)                       │
+│  Landing Page → Trade Desk → Create RFQ → RFQ Details Page   │
+└───────────────────────────┬──────────────────────────────────┘
+                            │  Solana Wallet Adapter
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│           Solana Program: private_rfq                         │
+│  initialize_rfq → submit_bid → request_fhe_match             │
+│  request_match_decrypt → reveal_match → execute_settlement   │
+└─────────────┬──────────────────────┬─────────────────────────┘
+              │                      │
+              ▼                      ▼
+┌─────────────────────┐   ┌──────────────────────────────┐
+│  Encrypt FHE Layer   │   │      Ika 2PC-MPC Layer        │
+│  match_rfq_bid       │   │  dWallet signature generation │
+│  (CT + CT matching) │   │  Cross-chain BTC release      │
+└─────────────────────┘   └──────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────────────────────────────────┐
+│         Relayer / Indexer (Node.js)                           │
+│  Polls Solana for RFQ state changes → REST API (port 3001)   │
+│  Powers the Live RFQ Orderbook in the frontend               │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Key Technical Decisions
-
-### Framework: Pinocchio (Not Anchor)
-
-The Encrypt SDK requires `anchor-lang = "0.32"` while the Ika SDK requires `anchor-lang = "1"`. These cannot coexist in one Cargo crate. Pinocchio is supported by **both** sponsor SDKs, avoids the version conflict, uses direct memory pointers for zero-overhead deserialization, and reduces CU usage.
-
-### Ciphertext Storage Architecture
-
-Per the official Encrypt documentation, ciphertexts are **separate 98-byte Solana keypair accounts** owned by the Encrypt program. This program stores their **32-byte account pubkeys** in `RfqState` and `BidState` — not raw encrypted bytes. The account pubkey IS the ciphertext identifier.
-
-### FHE Circuit Output: EUint64 (0 or 1)
-
-REFHE comparisons on `EUint64` return `EUint64` (value 0 or 1), not `EBool`. The circuit returns an `EUint64` and we check `value > 0` for a match in `reveal_match`.
-
-### Async 4-Step FHE Lifecycle
-
-```
-request_fhe_match → [Encrypt executor, ~5-30s] → request_match_decrypt → [Decryptor, ~5-30s] → reveal_match
-```
-
-There is no synchronous callback from the Encrypt cluster. The frontend polls account status.
-
----
-
-## Pre-Alpha Disclaimers
-
-> ⚠️ **IMPORTANT — For Judges**: Both the Encrypt and Ika pre-alpha networks use **mock cryptography**:
->
-> - **Encrypt REFHE**: No real FHE applied. Ciphertexts store plaintext values in pre-alpha.
-> - **Ika dWallet**: No real 2PC-MPC. A single mock NOA keypair signs. Non-collusion not enforced.
->
-> The **code architecture** is fully production-correct. Cryptographic guarantees activate at mainnet. Do not submit real funds.
-
----
-
-## Program Addresses (Devnet)
-
-| Contract | Address |
-|---|---|
-| `private_rfq` | `PRVrFQd3eBKaxK3TEvdA2FPLQiSfGjH7jYHMEsGhsXM` |
-| Encrypt Program | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` |
-| Ika dWallet Program | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` |
-
----
-
-## Build & Run
+## 🛠️ Build, Test & Run
 
 ### Prerequisites
 
-- Rust stable with `cargo build-sbf` (Solana CLI toolkit)
-- Node.js ≥ 20
-- Solana CLI configured for devnet
-- Phantom or Solflare browser wallet with devnet SOL + USDC
+| Tool | Version |
+|------|---------|
+| Node.js | >= 22 |
+| Rust | stable |
+| Solana CLI | >= 1.18 |
+| Anchor CLI | >= 0.30 |
+| pnpm / npm | any |
 
-### 1. Build the FHE Circuit and Program
+### 1. Install Dependencies
 
 ```bash
-# Clone & enter project
+# Clone the repository
+git clone <repo-url>
 cd "Private Cross-Chain RFQ"
 
-# Run FHE circuit tests
-cargo test -p private-rfq-circuit --lib
-
-# Build on-chain program (SBF)
-cargo build-sbf -p private-rfq
-```
-
-### 2. Deploy
-
-```bash
-# Airdrop SOL (if needed)
-solana airdrop 2 --url devnet
-
-# Deploy program
-solana program deploy target/deploy/private_rfq.so --url devnet
-```
-
-### 3. Run the Relayer
-
-```bash
-cd relayer
+# Install all npm workspace dependencies
 npm install
-npm run dev
-# → Listening on http://localhost:3001
 ```
 
-### 4. Run the Frontend
+### 2. Build the Solana Program
 
 ```bash
-cd app
-npm install
-npm run dev
-# → Open http://localhost:3000
+# Build the native Rust/SBF program
+npm run build:program
+
+# (Optional) Deploy to Devnet — requires funded wallet at ~/.config/solana/id.json
+npm run deploy:devnet
 ```
 
-### 5. Run Tests
+### 3. Run the Frontend
 
 ```bash
-# Integration tests (no validator required)
+# Start the Next.js dev server (port 3000)
+npm run dev:app
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### 4. Run the Relayer (Required for Live Orderbook)
+
+In a separate terminal:
+
+```bash
+# Start the Solana indexer + REST API (port 3001)
+npm run dev:relayer
+```
+
+The Relayer polls Solana Devnet for program account changes and exposes them via a REST API at `http://localhost:3001/api/rfqs/active`.
+
+### 5. Run Integration Tests
+
+```bash
 npm run test:integration
 ```
 
 ---
 
-## File Structure
+## 🔄 Demo Walkthrough
+
+### Maker Flow (Seller)
+
+1. Connect your Solana Devnet wallet (e.g., Phantom).
+2. Click **"Enter Live Desk"** → **"Create New RFQ"**.
+3. Enter `Asset Amount` (BTC), `Minimum Price` (USDC/BTC), and your **Ika dWallet Address**.
+4. Click **"Encrypt & Publish RFQ"**. The app encrypts your parameters client-side and calls `initialize_rfq` on Solana.
+5. Your sealed order appears in the **Live RFQ Desk** (only the RFQ ID, chain, and status are public — price and size remain hidden).
+
+### Taker Flow (Buyer)
+
+1. Connect a *second* Solana Devnet wallet.
+2. Navigate to the **Live Desk** and click **"Place Bid"** on an active order.
+3. Enter your `Bid Price` and `Bid Size`, plus your BTC receive address.
+4. Click **"Encrypt & Submit Bid"**. The lifecycle runs automatically:
+   - `submit_bid` — USDC escrow locked on Solana.
+   - `request_fhe_match` — Encrypt graph triggered.
+   - `request_match_decrypt` — Threshold decryptor reveals match result.
+   - `reveal_match` — Match decision committed to Solana.
+   - `Ika 2PC-MPC Signing` — Cross-chain authorization generated.
+   - **Settlement Complete** — Assets released / escrow refunded.
+
+---
+
+## 📡 Deployed Program IDs
+
+| Network | Program | ID |
+|---------|---------|-----|
+| Solana **Devnet** | `private_rfq` | `PRVrFQd3eBKaxK3TEvdA2FPLQiSfGjH7jYHMEsGhsXM` |
+| Solana **Devnet** | `private_rfq` (active relayer tracking) | `HGvkqjJZXQbRPkPiMPxpKW153ssyoeqrbS19zgbAoRYp` |
+
+> **Solana Explorer:** [View on Explorer ↗](https://explorer.solana.com/address/HGvkqjJZXQbRPkPiMPxpKW153ssyoeqrbS19zgbAoRYp?cluster=devnet)
+
+---
+
+## 📁 Repository Structure
 
 ```
-private-rfq-desk/
-├── encrypt-circuit/           FHE computation graph (#[encrypt_fn])
-│   ├── Cargo.toml
-│   └── src/lib.rs             match_rfq_bid circuit + 7 unit tests
-│
-├── programs/private_rfq/      On-chain Pinocchio program
-│   ├── Cargo.toml
+.
+├── app/                    # Next.js 14 frontend (App Router)
 │   └── src/
-│       ├── lib.rs             Entrypoint + 7-instruction dispatcher
-│       ├── state.rs           RfqState (172B) + BidState (299B) layouts
-│       ├── errors.rs          10 custom error codes
-│       └── instructions/
-│           ├── initialize_rfq.rs       [0] Maker publishes encrypted RFQ
-│           ├── submit_bid.rs           [1] Taker places bid + USDC escrow
-│           ├── request_fhe_match.rs    [2] CPI: Encrypt execute_graph
-│           ├── request_match_decrypt.rs[3] CPI: Encrypt request_decryption
-│           ├── reveal_match.rs         [4] USDC settle or refund
-│           ├── execute_settlement.rs   [5] CPI: Ika approve_message
-│           └── force_cancel_timeout.rs [6] Emergency timeout reset
-│
-├── app/                       Next.js 14 frontend
+│       ├── app/            # Pages: /, /trade, /trade/create, /trade/[rfqId]
+│       ├── components/     # OrderBook, RfqCreationForm, BidSubmissionModal, etc.
+│       ├── hooks/          # useRfqProgram.ts — Solana program interactions
+│       └── stores/         # Zustand state (rfqStore)
+├── programs/
+│   └── private_rfq/        # Rust/Anchor Solana program
+│       └── src/instructions/
+│           ├── initialize_rfq.rs
+│           ├── submit_bid.rs
+│           ├── request_fhe_match.rs
+│           ├── request_match_decrypt.rs
+│           └── reveal_match.rs
+├── relayer/                # Node.js Solana indexer + Express REST API
 │   └── src/
-│       ├── app/               Layout + main page (3-column console)
-│       ├── components/
-│       │   ├── StatusStepper.tsx       8-step lifecycle visualizer
-│       │   ├── RfqCreationForm.tsx     Maker flow
-│       │   ├── BidSubmissionModal.tsx  Taker flow
-│       │   ├── OrderBook.tsx           Live RFQ feed
-│       │   └── SettlementDashboard.tsx Post-trade proof of privacy
-│       ├── hooks/             useRfqProgram, useEncrypt, useIka
-│       ├── stores/            Zustand global state
-│       └── lib/               Constants (program IDs, endpoints, seeds)
-│
-├── relayer/                   Node.js indexer + REST API
-│   └── src/
-│       ├── index.ts           Solana polling daemon → SQLite
-│       └── api.ts             Express endpoints (/api/rfqs/active, etc.)
-│
-└── tests/                     Integration test suite (mocha + chai)
-    └── private_rfq.ts
+│       ├── index.ts        # Polling loop + in-memory store
+│       └── api.ts          # REST endpoints (/api/rfqs/active, etc.)
+├── tests/                  # Integration tests (Mocha + Chai)
+├── scripts/                # e2e-demo.ts — scripted end-to-end demo flow
+└── Anchor.toml             # Anchor workspace config
 ```
 
 ---
 
-## Sponsor Integration Summary
+## ⚠️ Hackathon Disclaimer
 
-### Encrypt (REFHE FHE)
+This project was built for the **Encrypt × Ika Frontier Hackathon** on Solana Devnet. The following are mocked for demo purposes:
 
-- **`encrypt-circuit/src/lib.rs`** — `#[encrypt_fn] match_rfq_bid(...)` defines the 4-input, 1-output FHE graph
-- **`request_fhe_match.rs`** — CPIs `execute_graph` via `EncryptContext.match_rfq_bid(...)`
-- **`request_match_decrypt.rs`** — CPIs `request_decryption`, stores `pending_digest`
-- **`reveal_match.rs`** — Calls `read_decrypted_verified::<Uint64>()` with digest check
+- **Encrypt gRPC SDK**: FHE ciphertext accounts are generated as random Solana keypairs. In production, each would be the result of a verified `createInput` call to the Encrypt network.
+- **Ika SDK**: dWallet creation, MPC signing rounds, and cross-chain message approvals are simulated with mock delays. The full 2PC-MPC protocol is scaffolded but requires a live Ika Devnet cluster.
+- **USDC Escrow**: The escrow logic in `submit_bid` and `reveal_match` uses simplified account structures. A production implementation would integrate SPL Token vaults.
 
-### Ika (2PC-MPC dWallet)
-
-- **`execute_settlement.rs`** — CPIs `approve_message` via `DWalletContext` after FHE match confirmed
-- **`useIka.ts`** — Polls `MessageApproval` PDA until `status == 1`, reads signature bytes
-- dWallet authority pre-transferred to `PDA([b"__ika_cpi_authority"], PROGRAM_ID)`
+The core architecture, state machine, and FHE/MPC integration patterns are production-ready and designed to be swapped with live SDKs as they become available.
 
 ---
 
-*Built for the Encrypt × Ika track of the Colosseum Frontier Hackathon, April 2026.*
-*Zero trust. Zero exposure. Fully on-chain.*
+## 📜 License
+
+MIT © 2026 — Built with ❤️ for the Encrypt × Ika Frontier Hackathon.

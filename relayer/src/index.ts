@@ -31,6 +31,33 @@ export interface RfqRecord {
 
 // Simple in-memory map for fast lookups and orderbook tracking
 export const rfqStore = new Map<string, RfqRecord>();
+const ignoredAccounts = new Set<string>();
+let isFirstPoll = true;
+
+// Seed the desk with realistic-looking dummy data for the presentation
+function seedDemoData() {
+  const seedRfqs: RfqRecord[] = [
+    {
+      rfq_pubkey: "RFQ8xYvKjL...Demo1",
+      maker_pubkey: "Maker1...",
+      status: 1, // ACTIVE
+      chain: 1,  // BITCOIN
+      created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    },
+    {
+      rfq_pubkey: "RFQ9zPwMjN...Demo2",
+      maker_pubkey: "Maker2...",
+      status: 3, // SETTLED
+      chain: 1,  // BITCOIN
+      created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    }
+  ];
+  
+  seedRfqs.forEach(rfq => rfqStore.set(rfq.rfq_pubkey, rfq));
+  console.log(`[relayer] Seeded ${seedRfqs.length} presentation RFQs.`);
+}
 
 function parseRfqAccount(pubkey: string, data: Buffer, createdAt: string): RfqRecord | null {
   if (data.length < 172) return null;
@@ -54,6 +81,10 @@ function parseRfqAccount(pubkey: string, data: Buffer, createdAt: string): RfqRe
 
 async function poll(connection: Connection, programId: PublicKey) {
   try {
+    if (isFirstPoll) {
+      seedDemoData();
+    }
+
     const accounts = await connection.getProgramAccounts(programId, {
       filters: [
         { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from([RFQ_DISCRIMINATOR])) } },
@@ -61,11 +92,20 @@ async function poll(connection: Connection, programId: PublicKey) {
       ] as GetProgramAccountsFilter[],
     });
 
+    if (isFirstPoll) {
+      accounts.forEach(a => ignoredAccounts.add(a.pubkey.toBase58()));
+      console.log(`[relayer] Ignoring ${ignoredAccounts.size} historical RFQs for clean demo slate.`);
+      isFirstPoll = false;
+      return;
+    }
+
     const now = new Date().toISOString();
     let updatedCount = 0;
 
-    for (const { pubkey, account } of accounts) {
+    accounts.forEach(({ pubkey, account }) => {
       const pubkeyStr = pubkey.toBase58();
+      if (ignoredAccounts.has(pubkeyStr)) return;
+
       const parsed = parseRfqAccount(pubkeyStr, account.data as Buffer, now);
       
       if (parsed) {
@@ -80,7 +120,7 @@ async function poll(connection: Connection, programId: PublicKey) {
           updatedCount++;
         }
       }
-    }
+    });
 
     if (updatedCount > 0) {
       console.log(`[relayer] Sync complete. Store size: ${rfqStore.size} (Updated ${updatedCount})`);

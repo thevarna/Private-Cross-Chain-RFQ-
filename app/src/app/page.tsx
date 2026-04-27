@@ -1,295 +1,108 @@
 "use client";
 
-import nextDynamic from "next/dynamic";
 import { useState, useEffect } from "react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Shield, Lock, Zap, ChevronRight } from "lucide-react";
+import { Lock, Shield, Zap, ArrowRight, Activity, Globe } from "lucide-react";
+import Link from "next/link";
 import clsx from "clsx";
 
-import { useRfqStore }        from "@/stores/rfqStore";
-
-// Move components to lazy-loaded dynamic imports with SSR: false
-const RfqCreationForm = nextDynamic(() => import("@/components/RfqCreationForm").then(m => m.RfqCreationForm), { ssr: false });
-const StatusStepper   = nextDynamic(() => import("@/components/StatusStepper").then(m => m.StatusStepper), { ssr: false });
-const OrderBook       = nextDynamic(() => import("@/components/OrderBook").then(m => m.OrderBook), { ssr: false });
-const SettlementDashboard = nextDynamic(() => import("@/components/SettlementDashboard").then(m => m.SettlementDashboard), { ssr: false });
-
-export const dynamic = "force-dynamic";
-
-export default function Home() {
+export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  const { publicKey } = useWallet();
-  const {
-    role, setRole,
-    step, activeRfq, activeBid, settlement, txSigs, error,
-  } = useRfqStore();
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-void">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-match-gradient opacity-20" />
-          <div className="h-2 w-24 bg-border rounded" />
-        </div>
-      </div>
-    );
-  }
-
-  // Stepper is strictly for the Taker's FHE matching lifecycle
-  const showStepper = [
-    "encrypting_bid",
-    "submitting_bid",
-    "fhe_computing",
-    "awaiting_decryptor",
-    "revealing_match",
-    "awaiting_mpc_sig",
-  ].includes(step);
-
-  const showSettlement  = (step === "settled" || step === "no_match") && settlement;
-  
-  // Maker stays on the creation form until they successfully publish
-  const showRfqForm = role === "maker" && [
-    "idle", 
-    "encrypting_rfq", 
-    "submitting_rfq", 
-    "awaiting_bid"
-  ].includes(step);
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-void bg-grid-pattern bg-[size:40px_40px]">
-      {/* ── Top Navigation Bar ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.05] bg-void/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-6 py-4 max-w-[1440px] mx-auto w-full">
-          {/* Logo */}
+    <div className="min-h-screen flex flex-col bg-void bg-grid-pattern bg-[size:40px_40px] relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-encrypt/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-ika/20 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Navbar */}
+      <header className="absolute top-0 w-full z-50">
+        <div className="flex items-center justify-between px-8 py-6 max-w-[1440px] mx-auto">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-match-gradient flex items-center justify-center shadow-lg shadow-encrypt/10 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-match-gradient flex items-center justify-center shadow-lg shadow-encrypt/10">
               <Lock className="w-5 h-5 text-void shrink-0" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-mono text-base font-bold text-text tracking-tight uppercase">
-                Private RFQ Desk
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-encrypt font-mono font-bold tracking-widest uppercase">Encrypt</span>
-                <span className="text-[10px] text-muted">×</span>
-                <span className="text-[10px] text-ika font-mono font-bold tracking-widest uppercase">Ika</span>
-                <span className="text-[10px] text-muted px-1 opacity-50">|</span>
-                <span className="text-[10px] text-muted font-mono uppercase tracking-tighter">Devnet 3.1.10</span>
-              </div>
-            </div>
+            <span className="font-mono text-lg font-bold text-text tracking-tight uppercase">
+              Private RFQ Desk
+            </span>
           </div>
-
-          {/* Sponsor badges */}
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-encrypt/5 border border-encrypt/20 backdrop-blur-md">
-              <Lock className="w-3.5 h-3.5 text-encrypt shrink-0" />
-              <span className="text-[11px] text-encrypt font-mono font-semibold tracking-wider">REFHE CLOUD ACTIVE</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-ika/5 border border-ika/20 backdrop-blur-md">
-              <Shield className="w-3.5 h-3.5 text-ika shrink-0" />
-              <span className="text-[11px] text-ika font-mono font-semibold tracking-wider">2PC-MPC CLUSTER READY</span>
-            </div>
-          </div>
-
-          {/* Wallet */}
-          <div className="flex items-center gap-4">
-             <div className="hidden sm:block h-8 w-px bg-border mx-2" />
-             <WalletMultiButton />
-          </div>
+          
+          <Link 
+            href="/trade"
+            className="px-6 py-2.5 rounded-full font-mono text-sm font-medium bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md text-text flex items-center gap-2 group"
+          >
+            Launch App
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
       </header>
 
-      {/* ── Main 12-Column Grid Layout ─────────────────────────────────────────── */}
-      <div className="flex-1 max-w-[1440px] mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8">
-
-        {/* LEFT COMPONENT (3 cols) */}
-        <aside className="col-span-12 lg:col-span-3 flex flex-col gap-6 order-2 lg:order-1">
-          <section className="glass-card p-5 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <p className="label">Network Partition</p>
-              <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <RoleButton
-                id="role-maker"
-                label="Maker"
-                sublabel="Sell BTC"
-                active={role === "maker"}
-                onClick={() => setRole("maker")}
-                color="encrypt"
-              />
-              <RoleButton
-                id="role-taker"
-                label="Taker"
-                sublabel="Buy BTC"
-                active={role === "taker"}
-                onClick={() => setRole("taker")}
-                color="ika"
-              />
-            </div>
-          </section>
-
-          <section className="glass-card p-5 space-y-4">
-            <p className="label">Execution Engine</p>
-            <StatRow icon={<Lock className="w-3.5 h-3.5 text-encrypt shrink-0" />}
-              label="FHE Runtime" value="A-Star" ok />
-            <StatRow icon={<Shield className="w-3.5 h-3.5 text-ika shrink-0" />}
-              label="MPC Nodes" value="Stable (8)" ok />
-            <StatRow icon={<Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-              label="Solana TPS" value="2.4k" ok />
-          </section>
-
-          <section className="glass-card p-5 border-warning/10 bg-warning/[0.02]">
-            <div className="flex items-center gap-2 mb-2 text-warning">
-              <Shield className="w-3.5 h-3.5 shrink-0" />
-              <p className="text-[10px] font-mono font-bold uppercase tracking-widest">Compliance Notice</p>
-            </div>
-            <p className="text-[11px] text-subtle leading-normal font-medium opacity-80">
-              This environment utilizes mock FHE/MPC providers for the demonstration. 
-              Production security parameters activate on Solana Mainnet transitions.
-            </p>
-          </section>
-        </aside>
-
-        {/* CENTER COMPONENT (6 cols) */}
-        <main className="col-span-12 lg:col-span-6 min-w-0 order-1 lg:order-2">
-          {!publicKey ? (
-            <div className="h-full min-h-[500px] flex items-center justify-center">
-              <div className="text-center max-w-sm animate-fade-in">
-                <div className="w-20 h-20 mx-auto mb-8 rounded-[2rem] bg-match-gradient flex items-center justify-center shadow-2xl shadow-encrypt/10 rotate-3">
-                  <Lock className="w-10 h-10 text-void shrink-0" />
-                </div>
-                <h1 className="text-2xl font-mono text-text font-bold mb-4 tracking-tight">
-                  Confidential Liquidity
-                </h1>
-                <p className="text-sm text-subtle mb-10 leading-6 px-4">
-                  Experience institutional-grade OTC settlements without revealing price intent. 
-                  Locked by <span className="text-encrypt font-semibold">Encrypt REFHE</span> infrastructure.
-                </p>
-                <div className="scale-110">
-                  <WalletMultiButton />
-                </div>
-              </div>
-            </div>
-          ) : showSettlement && activeRfq && activeBid ? (
-            <div className="glass-card p-1 shadow-2xl animate-slide-up">
-              <div className="p-1 rounded-[calc(1rem-1px)] border border-white/[0.03]">
-                <SettlementDashboard
-                  rfq={activeRfq}
-                  bid={activeBid}
-                  settlement={settlement!}
-                  txSigs={txSigs}
-                />
-              </div>
-            </div>
-          ) : showStepper ? (
-            <div className="glass-card p-8 shadow-2xl animate-fade-in">
-              <StatusStepper
-                currentStep={step}
-                escrowAmount={activeBid?.escrowAmount}
-                ikaSignature={settlement?.ikaSignature ?? null}
-                txSigs={txSigs}
-              />
-            </div>
-          ) : showRfqForm ? (
-            <div className="glass-card p-8 shadow-2xl animate-slide-up bg-void/40">
-              <RfqCreationForm />
-            </div>
-          ) : role === "taker" ? (
-            <div className="glass-card p-8 flex items-center justify-center min-h-[400px] border-dashed border-muted/20">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-muted/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ChevronRight className="w-6 h-6 text-muted shrink-0" />
-                </div>
-                <p className="font-mono text-sm font-semibold text-muted tracking-tight mb-2">
-                  Select Order for Matching
-                </p>
-                <p className="text-xs text-subtle max-w-[240px] mx-auto opacity-60">
-                  Review the live RFQ desk on the right and select "Place Bid" to initialize matching.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="glass-card p-8 flex items-center justify-center min-h-[400px]">
-              <div className="text-center group">
-                <div className="w-12 h-12 bg-encrypt/5 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-encrypt/10 transition-colors">
-                  <Lock className="w-6 h-6 text-muted shrink-0 group-hover:text-encrypt transition-colors" />
-                </div>
-                <p className="font-mono text-sm font-semibold text-muted tracking-tight mb-2">
-                  Console Standby
-                </p>
-                <p className="text-xs text-subtle opacity-60">
-                  Select "Maker" or "Taker" to initialize session
-                </p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-6 p-4 rounded-2xl bg-danger/5 border border-danger/20 animate-slide-up flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-danger animate-ping" />
-              <p className="text-xs text-danger font-mono font-medium">{error}</p>
-            </div>
-          )}
-        </main>
-
-        {/* RIGHT COMPONENT (3 cols) */}
-        <aside className="col-span-12 lg:col-span-3 order-3">
-          <div className="glass-card p-1 sticky top-28 shadow-xl">
-             <div className="p-1 rounded-[calc(1rem-1px)]">
-                <OrderBook />
-             </div>
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-6 pt-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-encrypt/10 border border-encrypt/20 backdrop-blur-md mb-8 animate-fade-in">
+            <Lock className="w-3.5 h-3.5 text-encrypt" />
+            <span className="text-xs text-encrypt font-mono font-semibold tracking-wider uppercase">
+              Powered by Encrypt FHE & Ika MPC
+            </span>
           </div>
-        </aside>
-      </div>
+          
+          <h1 className="text-5xl md:text-7xl font-mono font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 tracking-tighter mb-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            Confidential <br /> Cross-Chain Liquidity
+          </h1>
+          
+          <p className="text-lg md:text-xl text-subtle font-medium max-w-2xl mx-auto mb-12 animate-slide-up leading-relaxed" style={{ animationDelay: '200ms' }}>
+            Execute massive OTC trades without market impact. Price and size are mathematically sealed throughout the entire matching process. No bridges. No front-running.
+          </p>
+          
+          <div className="flex items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '300ms' }}>
+            <Link 
+              href="/trade"
+              className="px-8 py-4 rounded-xl font-mono text-base font-bold bg-encrypt-gradient text-void hover:brightness-110 hover:shadow-[0_0_30px_rgba(0,210,255,0.4)] active:scale-[0.98] transition-all flex items-center gap-2"
+            >
+              Enter Live Desk
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Feature Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-24 animate-slide-up" style={{ animationDelay: '400ms' }}>
+          <FeatureCard 
+            icon={<Lock className="w-6 h-6 text-encrypt" />}
+            title="Fully Homomorphic Encryption"
+            description="Orders are matched mathematically while encrypted. Neither the network, the validators, nor the counterparty sees the parameters until settlement."
+          />
+          <FeatureCard 
+            icon={<Shield className="w-6 h-6 text-ika" />}
+            title="Bridgeless 2PC-MPC Settlement"
+            description="Native assets (like Bitcoin) are released cross-chain using multi-party computation signatures. Zero wrap risk."
+          />
+          <FeatureCard 
+            icon={<Zap className="w-6 h-6 text-blue-400" />}
+            title="Solana Speed & Finality"
+            description="The entire state machine is orchestrated on Solana, providing unparalleled throughput and instant consensus for the RFQ lifecycle."
+          />
+        </div>
+      </main>
+      
+      {/* Footer */}
+      <footer className="py-8 text-center text-xs font-mono text-muted relative z-10 border-t border-white/5 mt-20">
+        <p>Built for the Encrypt x Ika Frontier Hackathon</p>
+      </footer>
     </div>
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const RoleButton: React.FC<{
-  id: string;
-  label: string;
-  sublabel: string;
-  active: boolean;
-  onClick: () => void;
-  color: "encrypt" | "ika";
-}> = ({ id, label, sublabel, active, onClick, color }) => (
-  <button
-    id={id}
-    onClick={onClick}
-    className={clsx(
-       "flex flex-col items-center py-3 px-2 rounded-lg border transition-all duration-200 text-center",
-      active
-        ? color === "encrypt"
-          ? "border-encrypt/40 bg-encrypt/10 text-encrypt"
-          : "border-ika/40 bg-ika/10 text-ika"
-        : "border-border bg-surface/50 text-muted hover:border-border/80 hover:text-subtle"
-    )}
-  >
-    <span className="font-mono text-sm font-medium">{label}</span>
-    <span className="text-xs opacity-70">{sublabel}</span>
-  </button>
-);
-
-const StatRow: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  ok?: boolean;
-}> = ({ icon, label, value, ok }) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
+const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
+  <div className="glass-card p-6 flex flex-col items-start text-left hover:-translate-y-1 transition-transform duration-300">
+    <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center border border-border mb-4">
       {icon}
-      <span className="text-xs text-muted">{label}</span>
     </div>
-    <div className="flex items-center gap-1.5">
-      <span className={clsx("w-1.5 h-1.5 rounded-full", ok ? "bg-success" : "bg-danger")} />
-      <span className="text-xs font-mono text-text">{value}</span>
-    </div>
+    <h3 className="text-lg font-mono font-bold text-text mb-2">{title}</h3>
+    <p className="text-sm text-subtle leading-relaxed">{description}</p>
   </div>
 );

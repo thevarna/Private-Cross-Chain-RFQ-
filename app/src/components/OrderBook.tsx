@@ -15,8 +15,8 @@ import { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
 import { Radio, Bitcoin, Cpu, CheckCircle, Clock } from "lucide-react";
 import clsx from "clsx";
-import { BidSubmissionModal } from "./BidSubmissionModal";
-import { ActiveRfq } from "@/stores/rfqStore";
+import Link from "next/link";
+import { useRfqStore } from "@/stores/rfqStore";
 import { RELAYER_API, RFQ_STATUS, CHAIN_ID } from "@/lib/constants";
 
 interface RelayerRfq {
@@ -36,7 +36,7 @@ const STATUS_BADGE: Record<number, { label: string; cls: string }> = {
 };
 
 export const OrderBook: FC = () => {
-  const [selectedRfq, setSelectedRfq] = useState<ActiveRfq | null>(null);
+  const { setActiveRfq } = useRfqStore();
 
   const { data, isLoading, isError } = useQuery<RelayerRfq[]>({
     queryKey: ["rfqs-active"],
@@ -48,15 +48,11 @@ export const OrderBook: FC = () => {
     },
     refetchInterval: 3000,
   });
-
-  const handlePlaceBid = (rfq: RelayerRfq) => {
-    // For the bid modal we need an ActiveRfq shape.
-    // The relayer doesn't expose encrypted data — so we load the ciphertext
-    // pubkeys from the on-chain account data lazily. For the demo, we construct
-    // a minimal ActiveRfq from the relayer record.
-    const activeRfq: ActiveRfq = {
+  const handleSelectRfq = (rfq: RelayerRfq) => {
+    // We populate the store with a minimal ActiveRfq so the details page 
+    // doesn't have to guess or fetch dummy accounts.
+    const activeRfq = {
       rfqPda:            new PublicKey(rfq.rfq_pubkey),
-      // These would be fetched from the on-chain account in production
       rfqPriceCt:        new PublicKey(rfq.rfq_pubkey),  // placeholder
       rfqSizeCt:         new PublicKey(rfq.rfq_pubkey),  // placeholder
       dwalletPubkey:     new PublicKey(rfq.maker_pubkey),
@@ -64,7 +60,7 @@ export const OrderBook: FC = () => {
       salt:              new Uint8Array(32),
       makerPubkey:       new PublicKey(rfq.maker_pubkey),
     };
-    setSelectedRfq(activeRfq);
+    setActiveRfq(activeRfq);
   };
 
   return (
@@ -161,17 +157,18 @@ export const OrderBook: FC = () => {
                   {/* Action */}
                   <div>
                     {isActive ? (
-                      <button
+                      <Link
+                        href={`/trade/${rfq.rfq_pubkey}`}
                         id={`place-bid-${rfq.rfq_pubkey.slice(0, 6)}`}
-                        onClick={() => handlePlaceBid(rfq)}
+                        onClick={() => handleSelectRfq(rfq)}
                         className={clsx(
                           "text-xs font-mono px-3 py-1.5 rounded-lg",
                           "bg-encrypt-gradient text-void",
-                          "hover:brightness-110 transition-all active:scale-95"
+                          "hover:brightness-110 transition-all active:scale-95 inline-block text-center"
                         )}
                       >
                         Place Bid
-                      </button>
+                      </Link>
                     ) : (
                       <span className="text-xs text-muted font-mono">—</span>
                     )}
@@ -183,13 +180,6 @@ export const OrderBook: FC = () => {
         </div>
       </div>
 
-      {/* Bid modal */}
-      {selectedRfq && (
-        <BidSubmissionModal
-          rfq={selectedRfq}
-          onClose={() => setSelectedRfq(null)}
-        />
-      )}
     </>
   );
 };

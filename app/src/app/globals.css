@@ -41,12 +41,12 @@
     @apply bg-panel border border-border rounded-2xl shadow-panel;
   }
   .glass-card {
-    @apply rounded-2xl border border-white/[0.05] backdrop-blur-xl transition-all duration-300;
-    background: linear-gradient(135deg, rgba(13, 24, 41, 0.7) 0%, rgba(8, 15, 30, 0.8) 100%);
-    box-shadow: 0 4px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    @apply rounded-2xl border border-white/[0.08] backdrop-blur-2xl transition-all duration-300;
+    background: linear-gradient(135deg, rgba(13, 24, 41, 0.6) 0%, rgba(8, 15, 30, 0.9) 100%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   .glass-card:hover {
-    @apply border-white/[0.1];
+    @apply border-white/[0.15] shadow-[0_12px_40px_rgba(0,0,0,0.5)];
   }
   .label {
     @apply font-mono text-xs text-muted uppercase tracking-widest;

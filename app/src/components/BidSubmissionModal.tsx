@@ -188,17 +188,10 @@ export const BidSubmissionModal: FC<Props> = ({ rfq, onClose }) => {
     submitBid, requestFheMatch,
     setStep, setActiveBid, updateBid, recordTxSig, setError, onClose,
   ]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-void/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-md bg-panel border border-border rounded-2xl shadow-panel animate-slide-up">
+    <div className="w-full">
+      {/* Container */}
+      <div className="relative z-10 w-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
           <div>
@@ -212,13 +205,6 @@ export const BidSubmissionModal: FC<Props> = ({ rfq, onClose }) => {
               RFQ: {rfq.rfqPda.toBase58().slice(0, 12)}…
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-text transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Body */}
